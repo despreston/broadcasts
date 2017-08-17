@@ -1,16 +1,36 @@
 const fs = require('fs');
+const optionsFileName = 'options.csv';
 
-const ipv4 = data => [ ...data.entries() ].map( entry => entry[ 1 ] ).join('.');
+/**
+ * Returns nicely formatted ip address
+ * @param {Buffer} data - 4 octet buffer containing IP address
+ * @return {string} IPv4 formatted address
+ */
+function ipv4( data ) {
+  return [ ...data.entries() ].map( entry => entry[ 1 ] ).join('.');
+}
 
-const str = data => data.toString().replace(/\u0000/g, '');
+/**
+ * Returns buffer as string
+ * @param {Buffer} data - Buffer containing ascii text
+ * @return {string}
+ */
+function str( data ) {
+  return data.toString().replace(/\u0000/g, '');
+}
 
-const mac = data => {
+/**
+ * Formats buffer data into MAC address
+ * @param {Buffer} data
+ * @return {string}
+ */
+function mac( data ) {
   return [ ...data ]
   .filter( shit => !!shit )
   .map( shit => shit.toString( 16 ) ).join(':');
 }
 
-const optionsLookup = {
+const customOptionHandlers = {
   1:  data => ( { SubnetMask: ipv4( data ) } ),
   3:  data => ( { Router: ipv4( data ) } ),
   6:  data => ( { DNS: ipv4( data ) } ),
@@ -28,21 +48,26 @@ const optionsLookup = {
   61: data => ( { ClientId: mac( data.slice( 1 ) ) } ),
 };
 
-const loadOptions = () => {
+/**
+ * Loads option data from 'optionsFileName'
+ * @return {Object} Options from file formatted the same way as
+ * 'customOptionHandlers'
+ */
+function optionsFromFile() {
   try {
-    const optionsFile = fs.readFileSync('options.csv', 'utf8');
+    let loadedOptions = Object.create( {} );
+    const optionsFile = fs.readFileSync(optionsFileName, 'utf8');
 
-    const optionsArray = optionsFile.split('\n').reduce( ( arr, option ) => {
-      return arr.concat([ option.split(',') ]);
-    }, []);
-
-    optionsArray.slice( 0, 1 );
+    const optionsArray = optionsFile
+    .split('\n')
+    .reduce( ( arr, option ) => arr.concat( [ option.split(',') ] ), [])
+    .slice( 1 );
 
     optionsArray.forEach( ( [ code, name ] ) => {
-      if( !optionsLookup[ code ] ) {
-        optionsLookup[ code ] = data => ( { [ name ] : str( data ) } );
-      }
+      loadedOptions[ code ] = data => ( { [ name ] : str( data ) } );
     });
+
+    return loadedOptions;
   } catch ( err ) {
     console.log('Problem opening options.csv');
   }
@@ -154,6 +179,9 @@ class Packet {
 
 }
 
-loadOptions();
+const optionsLookup = Object.assign( {},
+  optionsFromFile(),
+  customOptionHandlers
+);
 
 module.exports = ( ...args ) => new Packet( ...args );

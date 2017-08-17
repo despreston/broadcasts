@@ -7,6 +7,7 @@ const address = '0.0.0.0';
 
 client.on('message', ( msg, rinfo ) => {
   console.log( Packet( msg ).toString() );
+  console.log('');
 });
 
 client.on('listening', () => {

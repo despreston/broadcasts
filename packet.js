@@ -1,10 +1,14 @@
 const fs = require('fs');
+
 const ipv4 = data => [ ...data.entries() ].map( entry => entry[ 1 ] ).join('.');
+
 const str = data => data.toString().replace(/\u0000/g, '');
 
-const mac = data => [ ...data ]
+const mac = data => {
+  return [ ...data ]
   .filter( shit => !!shit )
   .map( shit => shit.toString( 16 ) ).join(':');
+}
 
 const optionsLookup = {
   1:  data => ( { SubnetMask: ipv4( data ) } ),
@@ -12,37 +16,37 @@ const optionsLookup = {
   6:  data => ( { DNS: ipv4( data ) } ),
   15: data => ( { Domain: str( data ) } ),
   44: data => ( { NBNS: ipv4( data ) } ),
+  50: data => ( { RequestedIp: ipv4( data ) } ),
   51: data => ( { LeaseTime: data.readUInt32BE() } ),
   53: data => ( { MessageType: data.readUInt8() } ),
   54: data => ( { ServerIdentifier: ipv4( data ) } ),
   55: data => ( { Parameters: data } ),
   56: data => ( { Message: str( data ) } ),
+  57: data => ( { DHCPMaxMessageSize: data.readUInt16BE() } ),
   58: data => ( { RenewalTime: data.readUInt32BE() } ),
-  59: data => ( { RebindingTime: data.readUInt32BE() } )
+  59: data => ( { RebindingTime: data.readUInt32BE() } ),
+  61: data => ( { ClientId: mac( data.slice( 1 ) ) } ),
 };
 
-function loadOptions () {
+const loadOptions = () => {
   try {
     const optionsFile = fs.readFileSync('options.csv', 'utf8');
 
-    let optionsArray = optionsFile.split('\n').reduce( ( arr, option ) => {
+    const optionsArray = optionsFile.split('\n').reduce( ( arr, option ) => {
       return arr.concat([ option.split(',') ]);
     }, []);
 
-    optionsArray.splice( 0, 1 );
+    optionsArray.slice( 0, 1 );
 
     optionsArray.forEach( ( [ code, name ] ) => {
       if( !optionsLookup[ code ] ) {
         optionsLookup[ code ] = data => ( { [ name ] : str( data ) } );
       }
     });
-
   } catch ( err ) {
     console.log('Problem opening options.csv');
   }
 }
-
-loadOptions();
 
 class Packet {
 
@@ -71,7 +75,11 @@ class Packet {
     this.parse();
   }
 
-  toString() {
+  toString( full = false ) {
+    if( !full ) {
+      return this.data.options;
+    }
+
     const fields = Object.keys( this.data );
 
     const output = fields.reduce( ( str, field ) => {
@@ -145,5 +153,7 @@ class Packet {
   }
 
 }
+
+loadOptions();
 
 module.exports = ( ...args ) => new Packet( ...args );

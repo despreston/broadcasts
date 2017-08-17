@@ -1,3 +1,4 @@
+const fs = require('fs');
 const ipv4 = data => [ ...data.entries() ].map( entry => entry[ 1 ] ).join('.');
 
 const mac = data => [ ...data ]
@@ -18,6 +19,29 @@ const optionsLookup = {
   58: data => ( { RenewalTime: data.readUInt32BE() } ),
   59: data => ( { RebindingTime: data.readUInt32BE() } )
 };
+
+function loadOptions () {
+  try {
+    const optionsFile = fs.readFileSync('options.csv', 'utf8');
+
+    let optionsArray = optionsFile.split('\n').reduce( ( arr, option ) => {
+      return arr.concat([ option.split(',') ]);
+    }, []);
+
+    optionsArray.splice( 0, 1 );
+
+    optionsArray.forEach( ( [ code, name ] ) => {
+      if( !optionsLookup[ code ] ) {
+        optionsLookup[ code ] = data => ( { [ name ] : data.toString() } );
+      }
+    });
+
+  } catch ( err ) {
+    console.log('Problem opening options.csv');
+  }
+}
+
+loadOptions();
 
 class Packet {
 
@@ -113,11 +137,6 @@ class Packet {
         data = optionsLookup[ type ]( data );
         data.Code = type;
         parsed.push( data );
-      } else {
-        parsed.push( {
-          Code: type,
-          data: data.toString()
-        } );
       }
     }
 

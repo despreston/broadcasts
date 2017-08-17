@@ -1,5 +1,6 @@
 const fs = require('fs');
 const ipv4 = data => [ ...data.entries() ].map( entry => entry[ 1 ] ).join('.');
+const str = data => data.toString().replace(/\u0000/g, '');
 
 const mac = data => [ ...data ]
   .filter( shit => !!shit )
@@ -9,13 +10,13 @@ const optionsLookup = {
   1:  data => ( { SubnetMask: ipv4( data ) } ),
   3:  data => ( { Router: ipv4( data ) } ),
   6:  data => ( { DNS: ipv4( data ) } ),
-  15: data => ( { Domain: data.toString() } ),
+  15: data => ( { Domain: str( data ) } ),
   44: data => ( { NBNS: ipv4( data ) } ),
   51: data => ( { LeaseTime: data.readUInt32BE() } ),
   53: data => ( { MessageType: data.readUInt8() } ),
   54: data => ( { ServerIdentifier: ipv4( data ) } ),
   55: data => ( { Parameters: data } ),
-  56: data => ( { Message: data.toString() } ),
+  56: data => ( { Message: str( data ) } ),
   58: data => ( { RenewalTime: data.readUInt32BE() } ),
   59: data => ( { RebindingTime: data.readUInt32BE() } )
 };
@@ -32,7 +33,7 @@ function loadOptions () {
 
     optionsArray.forEach( ( [ code, name ] ) => {
       if( !optionsLookup[ code ] ) {
-        optionsLookup[ code ] = data => ( { [ name ] : data.toString() } );
+        optionsLookup[ code ] = data => ( { [ name ] : str( data ) } );
       }
     });
 

@@ -93,30 +93,30 @@ class Packet {
     let data;
 
     while ( type !== 0xff && offset < this.msg.length ) {
-      offset += 1;
       type = this.msg[ offset ];
+      offset += 1;
 
       if ( type === 0xff ) {
         break;
       }
 
-      offset += 1;
-
       if ( type === 0x00 ) {
+        offset += 1;
         break;
       }
 
       length = this.msg.readUInt8( offset );
+      offset += 1;
       data = this.msg.slice( offset, offset = offset + length );
 
-      if ( typeof optionsLookup[ type ] === 'function' ) {
+      if ( optionsLookup[ type ] ) {
         data = optionsLookup[ type ]( data );
         data.Code = type;
         parsed.push( data );
       } else {
         parsed.push( {
           Code: type,
-          data
+          data: data.toString()
         } );
       }
     }

@@ -1,13 +1,16 @@
 const dgram = require('dgram');
-const socket = dgram.createSocket('udp4');
+const client = dgram.createSocket('udp4');
+const server = dgram.createSocket('udp4');
 const Packet = require('./packet');
+const port = 67;
+const address = '0.0.0.0';
 
-socket.on('message', (msg, rinfo) => {
+client.on('message', ( msg, rinfo ) => {
   console.log( Packet( msg ).toString() );
 });
 
-socket.on('listening', () => {
-  console.log('listening', socket.address())
-})
+client.on('listening', () => {
+  console.log( 'listening', client.address() );
+});
 
-socket.bind(67, '0.0.0.0');
+client.bind(port, address);
